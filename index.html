@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>나의 할 일 목록</title>
+    <style>
+        /* 기본 스타일 및 초기화 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* 메인 컨테이너 (모바일 화면처럼 보이게 설정) */
+        .container {
+            width: 100%;
+            max-width: 500px; /* 태블릿/PC에서는 너무 넓어지지 않게 제한 */
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 90vh; /* 화면 높이의 90% */
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 입력창과 추가 버튼 영역 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1; /* 남은 공간 모두 차지 */
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px; /* 모바일에서 자동 확대 방지 */
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: #4CAF50;
+        }
+
+        /* 추가 버튼 스타일 */
+        .add-btn {
+            padding: 0 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+        }
+
+        .add-btn:active {
+            background-color: #45a049;
+        }
+
+        /* 할 일 목록 영역 (스크롤 가능) */
+        ul {
+            list-style-type: none;
+            flex: 1; /* 남은 높이 모두 차지 */
+            overflow-y: auto; /* 내용이 많으면 스크롤 */
+        }
+
+        /* 리스트 아이템 스타일 */
+        li {
+            background-color: #fff;
+            border-bottom: 1px solid #eee;
+            padding: 15px 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        li span {
+            word-break: break-all; /* 긴 텍스트 줄바꿈 */
+            margin-right: 10px;
+        }
+
+        /* 삭제 버튼 스타일 */
+        .delete-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .delete-btn:active {
+            background-color: #cc0000;
+        }
+
+        /* 할 일 없을 때 안내 문구 */
+        .empty-message {
+            text-align: center;
+            color: #888;
+            margin-top: 50px;
+            display: none; /* JS로 제어 */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>📝 오늘 할 일</h2>
+        
+        <div class="input-group">
+            <input type="text" id="taskInput" placeholder="할 일을 입력하세요..." onkeypress="handleEnter(event)">
+            <button class="add-btn" onclick="addTask()">추가</button>
+        </div>
+
+        <ul id="taskList">
+            </ul>
+        <p id="emptyMsg" class="empty-message">할 일이 없습니다.<br>새로운 일을 추가해보세요!</p>
+    </div>
+
+    <script>
+        const taskInput = document.getElementById("taskInput");
+        const taskList = document.getElementById("taskList");
+        const emptyMsg = document.getElementById("emptyMsg");
+
+        // 초기 상태 확인
+        checkEmpty();
+
+        // 할 일 추가 함수
+        function addTask() {
+            const taskText = taskInput.value.trim(); // 앞뒤 공백 제거
+
+            if (taskText === "") {
+                alert("할 일을 입력해주세요!");
+                return;
+            }
+
+            // li 요소 생성
+            const li = document.createElement("li");
+
+            // 텍스트를 담을 span 생성
+            const span = document.createElement("span");
+            span.textContent = taskText;
+            
+            // 텍스트 클릭 시 완료 표시 (취소선) 토글 기능 추가
+            span.onclick = function() {
+                if(span.style.textDecoration === "line-through") {
+                    span.style.textDecoration = "none";
+                    span.style.color = "#000";
+                } else {
+                    span.style.textDecoration = "line-through";
+                    span.style.color = "#aaa";
+                }
+            };
+
+            // 삭제 버튼 생성
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "삭제";
+            deleteBtn.className = "delete-btn";
+            deleteBtn.onclick = function() {
+                taskList.removeChild(li);
+                checkEmpty();
+            };
+
+            // li에 요소들 조립
+            li.appendChild(span);
+            li.appendChild(deleteBtn);
+
+            // 리스트에 추가 (최신순이 위로 오게 하려면 prepend 사용)
+            taskList.prepend(li);
+
+            // 입력창 초기화 및 포커스
+            taskInput.value = "";
+            taskInput.focus();
+            
+            checkEmpty();
+        }
+
+        // 엔터키 입력 시 추가 기능
+        function handleEnter(e) {
+            if (e.key === "Enter") {
+                addTask();
+            }
+        }
+
+        // 리스트가 비었는지 확인하여 안내 문구 표시
+        function checkEmpty() {
+            if (taskList.children.length === 0) {
+                emptyMsg.style.display = "block";
+            } else {
+                emptyMsg.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
